@@ -123,7 +123,7 @@ private fun VedicAstraApp() {
                     LazyVerticalGrid(columns = GridCells.Fixed(2), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
                         items(modules) { module ->
                             val key = module.title[AppLanguage.ENGLISH]
-                            val enabled = key in listOf("Numerology", "Nakshatra Guide", "Tarot Reading", "Remedies & Puja", "Prediction Verification", "Mithila Panchang", "Vedic Astrology")
+                            val enabled = key in listOf("Numerology", "Nakshatra Guide", "Tarot Reading", "Remedies & Puja", "Prediction Verification", "Mithila Panchang", "Vedic Astrology", "Palmistry AI", "Face Reading", "Celestial Gallery")
                             ElevatedCard(Modifier.fillMaxWidth().clickable(enabled = enabled) {
                                 when (key) {
                                     "Numerology" -> showNumerology = true
