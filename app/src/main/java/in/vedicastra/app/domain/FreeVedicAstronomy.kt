@@ -19,7 +19,9 @@ data class PanchangResult(
     val karana: String,
     val moonPhasePercent: Double,
     val sunrise: String?,
-    val sunset: String?
+    val sunset: String?,
+    val rahuKaal: String?,
+    val yamagand: String?
 )
 data class BirthChartResult(
     val ascendant: GrahaPosition,
@@ -39,7 +41,7 @@ object FreeVedicAstronomy {
     private val nakshatras = listOf("अश्विनी","भरणी","कृत्तिका","रोहिणी","मृगशिरा","आर्द्रा","पुनर्वसु","पुष्य","आश्लेषा","मघा","पूर्वा फाल्गुनी","उत्तरा फाल्गुनी","हस्त","चित्रा","स्वाती","विशाखा","अनुराधा","ज्येष्ठा","मूल","पूर्वाषाढ़ा","उत्तराषाढ़ा","श्रवण","धनिष्ठा","शतभिषा","पूर्वा भाद्रपदा","उत्तरा भाद्रपदा","रेवती")
     private val tithis = listOf("प्रतिपदा","द्वितीया","तृतीया","चतुर्थी","पञ्चमी","षष्ठी","सप्तमी","अष्टमी","नवमी","दशमी","एकादशी","द्वादशी","त्रयोदशी","चतुर्दशी","पूर्णिमा")
     private val yogas = listOf("विष्कम्भ","प्रीति","आयुष्मान","सौभाग्य","शोभन","अतिगण्ड","सुकर्मा","धृति","शूल","गण्ड","वृद्धि","ध्रुव","व्याघात","हर्षण","वज्र","सिद्धि","व्यतीपात","वरीयान","परिघ","शिव","सिद्ध","साध्य","शुभ","शुक्ल","ब्रह्म","इन्द्र","वैधृति")
-    private val karanas = listOf("किंस्तुघ्न","बव","बालव","कौलव","तैतिल","गर","वणिज","विष्टि (भद्रा)")
+    private val movableKaranas = listOf("बव","बालव","कौलव","तैतिल","गर","वणिज","विष्टि (भद्रा)")
 
     fun normalize(degrees: Double): Double = ((degrees % 360.0) + 360.0) % 360.0
 
@@ -69,11 +71,11 @@ object FreeVedicAstronomy {
         val yogaIndex = floor(normalize(sun + moon) / (360.0 / 27.0)).toInt().coerceIn(0,26)
         val karanaIndex = floor(elongation / 6.0).toInt().coerceIn(0,59)
         val karana = when (karanaIndex) {
-            0 -> karanas[0]
-            57 -> karanas[7]
-            58 -> karanas[0]
-            59 -> karanas[7]
-            else -> karanas[1 + ((karanaIndex - 1) % 7)]
+            0 -> "किंस्तुघ्न"
+            57 -> "शकुनि"
+            58 -> "चतुष्पद"
+            59 -> "नाग"
+            else -> movableKaranas[(karanaIndex - 1) % 7]
         }
         val paksha = if (tithiIndex < 15) "शुक्ल पक्ष" else "कृष्ण पक्ष"
         val tithiName = if (tithiIndex == 14) "पूर्णिमा" else if (tithiIndex == 29) "अमावस्या" else tithis[tithiIndex % 15]
