@@ -27,6 +27,7 @@ data class BirthChartResult(
     val ayanamsha: Double,
     val houseSystem: String = "Whole Sign (राशि आधारित)"
 )
+data class VimshottariPeriod(val lord: String, val years: Double, val startMillis: Long, val endMillis: Long)
 
 /**
  * Offline calculations using Astronomy Engine (MIT) for geocentric vectors,
