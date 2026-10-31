@@ -1,6 +1,11 @@
 package com.vedicastra.app
 
 import android.os.Bundle
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import java.util.Locale
+import android.location.Geocoder
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -340,22 +345,71 @@ private fun PanchangScreen(modifier: Modifier = Modifier) {
 
 @Composable
 private fun BirthChartScreen(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var date by remember { mutableStateOf("1984-02-02") }
     var time by remember { mutableStateOf("23:00") }
+    var place by remember { mutableStateOf("Patna, Bihar, India") }
     var latitude by remember { mutableStateOf("25.61") }
     var longitude by remember { mutableStateOf("85.14") }
     var zone by remember { mutableStateOf("Asia/Kolkata") }
+    var placeChoices by remember { mutableStateOf<List<android.location.Address>>(emptyList()) }
+    var searching by remember { mutableStateOf(false) }
+    var placeMessage by remember { mutableStateOf<String?>(null) }
     var result by remember { mutableStateOf<com.vedicastra.app.domain.BirthChartResult?>(null) }
     var birthEpochMillis by remember { mutableStateOf<Long?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
-    Column(modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-        Text("जन्मकुंडली • लग्न और ग्रह", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("जन्म की सही तारीख, स्थानीय समय और जन्मस्थान के निर्देशांक भरें।", style = MaterialTheme.typography.bodySmall)
+    Column(modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("जन्मकुंडली • विस्तृत लग्न chart एवं फलादेश", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("जन्म तारीख और स्थानीय जन्म समय भरें। जन्मस्थान का नाम खोजने पर अक्षांश-देशांतर अपने-आप भरेंगे।", style = MaterialTheme.typography.bodySmall)
         OutlinedTextField(date, { date = it; result = null }, label = { Text("जन्म तारीख YYYY-MM-DD") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(time, { time = it; result = null }, label = { Text("जन्म समय HH:MM (24-hour)") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(latitude, { latitude = it }, label = { Text("अक्षांश (Latitude)") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(longitude, { longitude = it }, label = { Text("देशांतर (Longitude, East +)") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(zone, { zone = it }, label = { Text("Time zone") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(place, { place = it; placeMessage = null }, label = { Text("जन्मस्थान खोजें (शहर / गाँव)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+        Button(enabled = place.isNotBlank() && !searching, onClick = {
+            scope.launch {
+                searching = true
+                placeMessage = null
+                placeChoices = emptyList()
+                try {
+                    val geocoder = Geocoder(context, Locale.getDefault())
+                    val found = withContext(Dispatchers.IO) {
+                        @Suppress("DEPRECATION")
+                        geocoder.getFromLocationName(place.trim(), 6) ?: emptyList()
+                    }
+                    placeChoices = found
+                    if (found.isEmpty()) placeMessage = "स्थान नहीं मिला। नाम के साथ जिला/राज्य भी लिखें।"
+                    else if (found.size == 1) {
+                        val a = found.first()
+                        latitude = a.latitude.toString()
+                        longitude = a.longitude.toString()
+                        if (a.countryCode.equals("IN", true)) zone = "Asia/Kolkata"
+                        place = listOfNotNull(a.locality, a.subAdminArea, a.adminArea, a.countryName).distinct().joinToString(", ")
+                        placeMessage = "स्थान चुना गया। निर्देशांक भर दिए गए हैं।"
+                        placeChoices = emptyList()
+                    } else placeMessage = "सही स्थान चुनें:"
+                } catch (e: Exception) {
+                    placeMessage = "स्थान खोज उपलब्ध नहीं है। इंटरनेट/Geocoder सेवा जाँचें या नीचे निर्देशांक भरें।"
+                } finally { searching = false }
+            }
+        }, modifier = Modifier.fillMaxWidth()) { Text(if (searching) "खोज रहे हैं…" else "स्थान खोजें") }
+        placeMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Color(0xFF8B3D20)) }
+        placeChoices.forEach { address ->
+            TextButton(onClick = {
+                latitude = address.latitude.toString()
+                longitude = address.longitude.toString()
+                if (address.countryCode.equals("IN", true)) zone = "Asia/Kolkata"
+                place = address.getAddressLine(0) ?: place
+                placeChoices = emptyList()
+                placeMessage = "स्थान चुना गया • निर्देशांक अपडेट"
+                result = null
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text(address.getAddressLine(0) ?: "${address.latitude}, ${address.longitude}")
+            }
+        }
+        OutlinedTextField(latitude, { latitude = it; result = null }, label = { Text("अक्षांश (स्वतः / manual)") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(longitude, { longitude = it; result = null }, label = { Text("देशांतर (स्वतः / manual)") }, modifier = Modifier.fillMaxWidth())
+        Text("समय क्षेत्र: $zone", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+        Text("भारत के स्थानों के लिए Asia/Kolkata स्वतः लगाया जाता है। अन्य देशों में अभी डिवाइस का समय क्षेत्र लागू हो सकता है; जाँच लें।", style = MaterialTheme.typography.labelSmall)
         Button(onClick = {
             try {
                 val instant = LocalDateTime.parse("${date.trim()}T${time.trim()}").atZone(ZoneId.of(zone.trim())).toInstant()
@@ -363,45 +417,93 @@ private fun BirthChartScreen(modifier: Modifier = Modifier) {
                 result = FreeVedicAstronomy.birthChart(instant.toEpochMilli(), latitude.toDouble(), longitude.toDouble())
                 error = null
             } catch (e: Exception) { error = "जन्म विवरण जाँचें: ${e.message}"; result = null }
-        }, modifier = Modifier.fillMaxWidth()) { Text("कुंडली गणना करें") }
+        }, modifier = Modifier.fillMaxWidth()) { Text("विस्तृत लग्न कुंडली बनाएँ") }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         result?.let { chart ->
+            val signNames = (0..11).map { FreeVedicAstronomy.signName(it) }
+            val planetsByHouse = chart.planets.groupBy { it.house ?: 1 }
             ElevatedCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("लग्न: ${FreeVedicAstronomy.signName(chart.ascendant.signIndex)} ${"%.2f".format(chart.ascendant.degreesInSign)}°", fontWeight = FontWeight.Bold)
-                    Text("ग्रह स्थिति • राशि आधारित Whole Sign भाव", style = MaterialTheme.typography.titleMedium)
-                    chart.planets.forEach { p ->
-                        Text("${p.name}: ${FreeVedicAstronomy.signName(p.signIndex)} ${"%.2f".format(p.degreesInSign)}° • भाव ${p.house}")
-                    }
-                    HorizontalDivider()
-                    val moonLongitude = chart.planets.firstOrNull { it.name == "चन्द्र" }?.longitude
-                    val birthMs = birthEpochMillis
-                    if (moonLongitude != null && birthMs != null) {
-                        val dashas = FreeVedicAstronomy.vimshottariMahadashas(birthMs, moonLongitude, 18)
-                        val now = System.currentTimeMillis()
-                        Text("विंशोत्तरी महादशा", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        dashas.take(9).forEach { period ->
-                            val active = now >= period.startMillis && now < period.endMillis
-                            Text((if (active) "▶ " else "") + "${period.lord}: ${java.time.Instant.ofEpochMilli(period.startMillis).atZone(ZoneId.of(zone)).toLocalDate()} – ${java.time.Instant.ofEpochMilli(period.endMillis).atZone(ZoneId.of(zone)).toLocalDate()}" + if (active) " (वर्तमान)" else "")
-                        }
-                        dashas.firstOrNull { now >= it.startMillis && now < it.endMillis }?.let { major ->
-                            Text("वर्तमान महादशा की अंतर्दशा", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            FreeVedicAstronomy.vimshottariAntardashas(major).forEach { sub ->
-                                val active = now >= sub.startMillis && now < sub.endMillis
-                                Text((if (active) "▶ " else "") + "${major.lord}/${sub.lord}: ${java.time.Instant.ofEpochMilli(sub.startMillis).atZone(ZoneId.of(zone)).toLocalDate()} – ${java.time.Instant.ofEpochMilli(sub.endMillis).atZone(ZoneId.of(zone)).toLocalDate()}")
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("जन्म विवरण", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("$place • $date • $time ($zone)")
+                    Text("लग्न: ${signNames[chart.ascendant.signIndex]} • ${"%.2f".format(chart.ascendant.degreesInSign)}°", fontWeight = FontWeight.Bold, color = Color(0xFF8B3D20))
+                    Text("अयनांश: ${"%.4f".format(chart.ayanamsha)}° • भाव पद्धति: राशि-आधारित Whole Sign", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            Text("द्वादश भाव लग्न कुंडली", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            (1..12).chunked(2).forEach { pair ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    pair.forEach { house ->
+                        val signIndex = (chart.ascendant.signIndex + house - 1) % 12
+                        val occupants = planetsByHouse[house].orEmpty()
+                        ElevatedCard(Modifier.weight(1f)) {
+                            Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("$house भाव", fontWeight = FontWeight.Bold, color = Color(0xFF8B3D20))
+                                Text(signNames[signIndex], fontWeight = FontWeight.SemiBold)
+                                Text(if (occupants.isEmpty()) "कोई ग्रह नहीं" else occupants.joinToString(" • ") { it.name }, style = MaterialTheme.typography.bodySmall)
+                                occupants.forEach { Text("${"%.1f".format(it.degreesInSign)}°", style = MaterialTheme.typography.labelSmall) }
                             }
                         }
                     }
-                    HorizontalDivider()
-                    Text("वर्तमान गोचर (जन्म लग्न से भाव)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    FreeVedicAstronomy.currentTransits(System.currentTimeMillis(), chart.ascendant.signIndex).forEach { transit ->
-                        Text("${transit.name}: ${FreeVedicAstronomy.signName(transit.signIndex)} • भाव ${transit.house}")
-                    }
-                    HorizontalDivider()
-                    Text("लाहिड़ी अयनांश (प्रारंभिक अनुमान): ${"%.4f".format(chart.ayanamsha)}°", style = MaterialTheme.typography.bodySmall)
                 }
             }
+            ElevatedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text("ग्रहों की विस्तृत स्थिति", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    chart.planets.forEach { p ->
+                        Text("${p.name}: ${signNames[p.signIndex]} ${"%.2f".format(p.degreesInSign)}° • भाव ${p.house}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+            Text("भावानुसार पारंपरिक फलादेश", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            val topics = listOf("स्वभाव, शरीर, व्यक्तित्व और जीवन-दिशा","धन, वाणी, परिवार और संचय","साहस, पराक्रम, भाई-बहन और संचार","माता, घर, सुख, भूमि और वाहन","विद्या, बुद्धि, संतान, सृजन और मंत्र","सेवा, ऋण, रोग और प्रतिस्पर्धा","विवाह, साझेदारी और सार्वजनिक संबंध","आयु, परिवर्तन, गूढ़ विषय और साझा संसाधन","भाग्य, धर्म, गुरु, उच्च शिक्षा और यात्रा","कर्म, पेशा, प्रतिष्ठा और उत्तरदायित्व","लाभ, मित्र, नेटवर्क और आकांक्षाएँ","व्यय, एकांत, विदेश और आध्यात्मिक साधना")
+            (1..12).forEach { house ->
+                val occupants = planetsByHouse[house].orEmpty()
+                ElevatedCard(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text("$house भाव • ${signNames[(chart.ascendant.signIndex + house - 1) % 12]}", fontWeight = FontWeight.Bold)
+                        Text("मुख्य विषय: ${topics[house-1]}", style = MaterialTheme.typography.bodySmall)
+                        if (occupants.isEmpty()) {
+                            Text("इस भाव में कोई ग्रह स्थित नहीं है। पारंपरिक ज्योतिष में इसका फल केवल खाली होने से तय नहीं होता; भावेश, दृष्टि, युति और दशा भी देखी जाती है।", style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            occupants.forEach { p ->
+                                val reading = when(p.name) {
+                                    "सूर्य" -> "आत्मविश्वास, नेतृत्व, अधिकार और पिता/प्रशासन से जुड़े विषयों पर जोर माना जाता है।"
+                                    "चन्द्र" -> "मन, भावनाएँ, माता, जनसंपर्क और मानसिक अनुकूलन के विषय प्रमुख माने जाते हैं।"
+                                    "मंगल" -> "ऊर्जा, साहस, भूमि, प्रतिस्पर्धा और त्वरित कार्रवाई के संकेत माने जाते हैं।"
+                                    "बुध" -> "बुद्धि, संवाद, गणना, व्यापार और सीखने की प्रवृत्ति से जोड़ा जाता है।"
+                                    "गुरु" -> "ज्ञान, मार्गदर्शन, विस्तार, नैतिकता और परंपरागत शुभता से जोड़ा जाता है।"
+                                    "शुक्र" -> "संबंध, कला, सुविधा, सौंदर्य और भौतिक सुख के विषयों से जोड़ा जाता है।"
+                                    "शनि" -> "अनुशासन, विलंब, श्रम, जिम्मेदारी और दीर्घकालिक प्रयास के विषय माने जाते हैं।"
+                                    "राहु" -> "असामान्य महत्वाकांक्षा, नवीनता, विदेशी/अपरंपरागत विषय और तीव्र इच्छा से जोड़ा जाता है।"
+                                    else -> "वैराग्य, शोध, आंतरिक परिवर्तन और आध्यात्मिकता के विषयों से पारंपरिक रूप में जोड़ा जाता है।"
+                                }
+                                Text("${p.name}: $reading", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            }
+            val moon = chart.planets.firstOrNull { it.name == "चन्द्र" }?.longitude
+            val birthMs = birthEpochMillis
+            if (moon != null && birthMs != null) {
+                val dashas = FreeVedicAstronomy.vimshottariMahadashas(birthMs, moon, 18)
+                val now = System.currentTimeMillis()
+                Text("विंशोत्तरी महादशा एवं अंतर्दशा", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                dashas.take(9).forEach { period ->
+                    val active = now >= period.startMillis && now < period.endMillis
+                    Text((if (active) "▶ " else "") + "${period.lord}: ${java.time.Instant.ofEpochMilli(period.startMillis).atZone(ZoneId.of(zone)).toLocalDate()} – ${java.time.Instant.ofEpochMilli(period.endMillis).atZone(ZoneId.of(zone)).toLocalDate()}" + if (active) " (वर्तमान)" else "")
+                    if (active) FreeVedicAstronomy.vimshottariAntardashas(period).forEach { sub ->
+                        val subActive = now >= sub.startMillis && now < sub.endMillis
+                        Text("   ${if (subActive) "▶ " else ""}${period.lord}/${sub.lord}: ${java.time.Instant.ofEpochMilli(sub.startMillis).atZone(ZoneId.of(zone)).toLocalDate()} – ${java.time.Instant.ofEpochMilli(sub.endMillis).atZone(ZoneId.of(zone)).toLocalDate()}", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+            Text("वर्तमान गोचर (जन्म लग्न से भाव)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            FreeVedicAstronomy.currentTransits(System.currentTimeMillis(), chart.ascendant.signIndex).forEach { transit ->
+                Text("${transit.name}: ${signNames[transit.signIndex]} • भाव ${transit.house}")
+            }
         }
-        Text("यह प्रारंभिक राशि-आधारित चार्ट है; चंद्र/सूर्य की गति, राहु-केतु, लग्न और भावों को प्रमाणित पंचांग व स्वतंत्र ephemeris से cross-check करना आवश्यक है।", style = MaterialTheme.typography.labelSmall)
+        Text("महत्वपूर्ण: यह पारंपरिक ज्योतिषीय व्याख्या है, निश्चित या वैज्ञानिक भविष्यवाणी नहीं। अभी यह प्रारंभिक D1 राशि-आधारित चार्ट है; नवांश, ग्रह-दृष्टि, भावेश बल, वक्री/अस्त स्थिति और मिथिला पंचांग से स्वतंत्र सत्यापन आगे जोड़ना/जाँचना बाकी है।", style = MaterialTheme.typography.labelSmall)
     }
 }
