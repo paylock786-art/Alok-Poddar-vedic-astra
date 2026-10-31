@@ -1,4 +1,4 @@
-package in.vedicastra.app.domain
+package com.vedicastra.app.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
