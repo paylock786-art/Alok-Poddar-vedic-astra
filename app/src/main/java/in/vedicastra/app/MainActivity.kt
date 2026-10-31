@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.vedicastra.app.domain.NumerologyEngine
 import com.vedicastra.app.domain.NumberMethod
 import com.vedicastra.app.domain.NumerologyReport
+import com.vedicastra.app.domain.NakshatraCatalog
 import java.time.LocalDate
 
 private enum class AppLanguage { HINDI, MAITHILI, ENGLISH }
@@ -44,6 +45,7 @@ class MainActivity : ComponentActivity() {
 private fun VedicAstraApp() {
     var language by remember { mutableStateOf(AppLanguage.HINDI) }
     var showNumerology by remember { mutableStateOf(false) }
+    var showNakshatra by remember { mutableStateOf(false) }
     val modules = listOf(
         AstraModule("☀", mapOf(AppLanguage.HINDI to "वैदिक ज्योतिष", AppLanguage.MAITHILI to "वैदिक ज्योतिष", AppLanguage.ENGLISH to "Vedic Astrology"), mapOf(AppLanguage.HINDI to "जन्मकुंडली, दशा, गोचर और योग", AppLanguage.MAITHILI to "जन्मकुंडली, दशा आ गोचर", AppLanguage.ENGLISH to "Birth chart, dashas, transits and yogas")),
         AstraModule("☾", mapOf(AppLanguage.HINDI to "मिथिला पंचांग", AppLanguage.MAITHILI to "मिथिला पंचांग", AppLanguage.ENGLISH to "Mithila Panchang"), mapOf(AppLanguage.HINDI to "तिथि, नक्षत्र, मुहूर्त और पंचांग तुलना", AppLanguage.MAITHILI to "तिथि, नक्षत्र आ मुहूर्त", AppLanguage.ENGLISH to "Tithi, nakshatra, muhurta and almanac comparison")),
@@ -60,7 +62,7 @@ private fun VedicAstraApp() {
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF8B3D20), secondary = Color(0xFFB77B32), background = Color(0xFFFFF8ED), surface = Color(0xFFFFFCF6))) {
         Scaffold(containerColor = Color(0xFFFFF8ED), topBar = {
             TopAppBar(title = { Column { Text("VEDIC ASTRA", fontWeight = FontWeight.ExtraBold); Text("सनातन ज्ञान • खगोलीय गणना", style = MaterialTheme.typography.labelSmall) } },
-                navigationIcon = { if (showNumerology) TextButton(onClick = { showNumerology = false }) { Text("←") } },
+                navigationIcon = { if (showNumerology || showNakshatra) TextButton(onClick = { showNumerology = false; showNakshatra = false }) { Text("←") } },
                 actions = {
                     var expanded by remember { mutableStateOf(false) }
                     TextButton(onClick = { expanded = true }) { Text(when(language) { AppLanguage.HINDI -> "हिन्दी"; AppLanguage.MAITHILI -> "मैथिली"; AppLanguage.ENGLISH -> "English" }) }
@@ -95,7 +97,7 @@ private fun VedicAstraApp() {
                                     Text(module.icon, style = MaterialTheme.typography.headlineMedium, color = Color(0xFF9B4A25))
                                     Text(module.title[language] ?: module.title[AppLanguage.ENGLISH]!!, fontWeight = FontWeight.Bold)
                                     Text(module.description[language] ?: module.description[AppLanguage.ENGLISH]!!, style = MaterialTheme.typography.bodySmall, minLines = 2)
-                                    Text(if (isNumerology) "खोलें / Open" else when(language) { AppLanguage.HINDI -> "विकास चरण में"; AppLanguage.MAITHILI -> "विकास जारी"; AppLanguage.ENGLISH -> "In development" }, style = MaterialTheme.typography.labelSmall, color = Color(0xFF9A5528))
+                                    Text(if (isNumerology || isNakshatra) "खोलें / Open" else when(language) { AppLanguage.HINDI -> "विकास चरण में"; AppLanguage.MAITHILI -> "विकास जारी"; AppLanguage.ENGLISH -> "In development" }, style = MaterialTheme.typography.labelSmall, color = Color(0xFF9A5528))
                                 }
                             }
                         }
@@ -142,6 +144,27 @@ private fun NumerologyScreen(modifier: Modifier = Modifier) {
                     Text("संयुक्त नामांक: ${data.compoundNameNumber ?: "—"}")
                     HorizontalDivider()
                     data.explanation.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NakshatraScreen(modifier: Modifier = Modifier) {
+    Column(modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("२७ नक्षत्र दर्शन", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("प्रत्येक नक्षत्र के पारंपरिक अधिष्ठाता देवता और प्रतीक। वास्तविक जन्म-नक्षत्र निकालने के लिए जन्म समय, स्थान और सटीक खगोलीय गणना आवश्यक है।", style = MaterialTheme.typography.bodySmall)
+        NakshatraCatalog.all.forEach { item ->
+            ElevatedCard(Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(item.number.toString().padStart(2,'0'), color = Color(0xFF9B4A25), fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(item.name, fontWeight = FontWeight.Bold)
+                        Text("अधिष्ठाता: ${item.deity}", style = MaterialTheme.typography.bodySmall)
+                        Text("प्रतीक: ${item.symbol}", style = MaterialTheme.typography.bodySmall, color = Color(0xFF765B45))
+                    }
                 }
             }
         }
