@@ -314,6 +314,8 @@ private fun PanchangScreen(modifier: Modifier = Modifier) {
                     Text("चन्द्रमा का प्रकाशित भाग: ${"%.1f".format(p.moonPhasePercent)}%")
                     Text("सूर्योदय: ${p.sunrise ?: "उपलब्ध नहीं"}")
                     Text("सूर्यास्त: ${p.sunset ?: "उपलब्ध नहीं"}")
+                    Text("राहुकाल: ${p.rahuKaal ?: "उपलब्ध नहीं"}")
+                    Text("यमगण्ड: ${p.yamagand ?: "उपलब्ध नहीं"}")
                     Text("लाहिड़ी अयनांश (प्रारंभिक अनुमान): ${"%.4f".format(p.ayanamsha)}°", style = MaterialTheme.typography.bodySmall)
                 }
             }
