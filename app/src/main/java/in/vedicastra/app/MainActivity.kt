@@ -10,19 +10,20 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
-import java.time.LocalDate
-import com.vedicastra.app.domain.NumerologyEngine
-import com.vedicastra.app.domain.NumberMethod
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.vedicastra.app.domain.NumerologyEngine
+import com.vedicastra.app.domain.NumberMethod
+import com.vedicastra.app.domain.NumerologyReport
+import java.time.LocalDate
 
 private enum class AppLanguage { HINDI, MAITHILI, ENGLISH }
 private data class AstraModule(val icon: String, val title: Map<AppLanguage,String>, val description: Map<AppLanguage,String>)
@@ -36,8 +37,9 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun VedicAstraApp() {\n    var showNumerology by remember { mutableStateOf(false) }
+private fun VedicAstraApp() {
     var language by remember { mutableStateOf(AppLanguage.HINDI) }
+    var showNumerology by remember { mutableStateOf(false) }
     val modules = listOf(
         AstraModule("☀", mapOf(AppLanguage.HINDI to "वैदिक ज्योतिष", AppLanguage.MAITHILI to "वैदिक ज्योतिष", AppLanguage.ENGLISH to "Vedic Astrology"), mapOf(AppLanguage.HINDI to "जन्मकुंडली, दशा, गोचर और योग", AppLanguage.MAITHILI to "जन्मकुंडली, दशा आ गोचर", AppLanguage.ENGLISH to "Birth chart, dashas, transits and yogas")),
         AstraModule("☾", mapOf(AppLanguage.HINDI to "मिथिला पंचांग", AppLanguage.MAITHILI to "मिथिला पंचांग", AppLanguage.ENGLISH to "Mithila Panchang"), mapOf(AppLanguage.HINDI to "तिथि, नक्षत्र, मुहूर्त और पंचांग तुलना", AppLanguage.MAITHILI to "तिथि, नक्षत्र आ मुहूर्त", AppLanguage.ENGLISH to "Tithi, nakshatra, muhurta and almanac comparison")),
@@ -50,13 +52,11 @@ private fun VedicAstraApp() {\n    var showNumerology by remember { mutableState
         AstraModule("◷", mapOf(AppLanguage.HINDI to "समय विश्लेषण", AppLanguage.MAITHILI to "समय विश्लेषण", AppLanguage.ENGLISH to "Time Analysis"), mapOf(AppLanguage.HINDI to "अगले 1, 3, 6, 12 और 24 घंटे", AppLanguage.MAITHILI to "आगाँक 1, 3, 6, 12 आ 24 घंटा", AppLanguage.ENGLISH to "Next 1, 3, 6, 12 and 24 hours")),
         AstraModule("✓", mapOf(AppLanguage.HINDI to "परिणाम सत्यापन", AppLanguage.MAITHILI to "परिणाम जाँच", AppLanguage.ENGLISH to "Prediction Verification"), mapOf(AppLanguage.HINDI to "पूर्वानुमान और वास्तविक परिणाम का रिकॉर्ड", AppLanguage.MAITHILI to "अनुमान आ वास्तविक परिणामक रिकॉर्ड", AppLanguage.ENGLISH to "Track forecasts against observed outcomes"))
     )
-    val deepMaroon = Color(0xFF32120F)
     val saffron = Color(0xFFFFC66D)
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF8B3D20), secondary = Color(0xFFB77B32), background = Color(0xFFFFF8ED), surface = Color(0xFFFFFCF6))) {
         Scaffold(containerColor = Color(0xFFFFF8ED), topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFFFF8ED)),
-                title = { Column { Text("VEDIC ASTRA", fontWeight = FontWeight.ExtraBold); Text("सनातन ज्ञान • खगोलीय गणना", style = MaterialTheme.typography.labelSmall) } },
+            TopAppBar(title = { Column { Text("VEDIC ASTRA", fontWeight = FontWeight.ExtraBold); Text("सनातन ज्ञान • खगोलीय गणना", style = MaterialTheme.typography.labelSmall) } },
+                navigationIcon = { if (showNumerology) TextButton(onClick = { showNumerology = false }) { Text("←") } },
                 actions = {
                     var expanded by remember { mutableStateOf(false) }
                     TextButton(onClick = { expanded = true }) { Text(when(language) { AppLanguage.HINDI -> "हिन्दी"; AppLanguage.MAITHILI -> "मैथिली"; AppLanguage.ENGLISH -> "English" }) }
@@ -65,41 +65,80 @@ private fun VedicAstraApp() {\n    var showNumerology by remember { mutableState
                         DropdownMenuItem(text = { Text("मैथिली") }, onClick = { language = AppLanguage.MAITHILI; expanded = false })
                         DropdownMenuItem(text = { Text("English") }, onClick = { language = AppLanguage.ENGLISH; expanded = false })
                     }
-                }
-            )
+                })
         }) { padding ->
-            Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 14.dp)) {
-                Box(
-                    Modifier.fillMaxWidth().height(190.dp)
-                        .background(Brush.verticalGradient(listOf(Color(0xFF5B2119), deepMaroon, Color(0xFF1E1420))), RoundedCornerShape(22.dp))
-                        .padding(18.dp)
-                ) {
-                    Column(Modifier.align(Alignment.CenterStart).fillMaxWidth(0.70f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                        Text("॥ ॐ ॥", color = saffron, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                        Text("वेदिक ज्ञान की दिव्य यात्रा", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Text("ग्रह • नक्षत्र • देवता • पंचांग", color = Color(0xFFFFDCA8), style = MaterialTheme.typography.bodyMedium)
-                        Text("श्रद्धा के साथ अध्ययन, गणना में स्पष्टता", color = Color.White.copy(alpha = 0.86f), style = MaterialTheme.typography.labelMedium)
+            if (showNumerology) {
+                NumerologyScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
+            } else {
+                Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 14.dp)) {
+                    Box(Modifier.fillMaxWidth().height(190.dp).background(Brush.verticalGradient(listOf(Color(0xFF5B2119), Color(0xFF32120F), Color(0xFF1E1420))), RoundedCornerShape(22.dp)).padding(18.dp)) {
+                        Column(Modifier.align(Alignment.CenterStart).fillMaxWidth(0.75f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Text("॥ ॐ ॥", color = saffron, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                            Text("वेदिक ज्ञान की दिव्य यात्रा", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text("ग्रह • नक्षत्र • देवता • पंचांग", color = Color(0xFFFFDCA8))
+                            Text("श्रद्धा के साथ अध्ययन, गणना में स्पष्टता", color = Color.White.copy(alpha = 0.86f), style = MaterialTheme.typography.labelMedium)
+                        }
+                        Text("☼\n✧\n☾", Modifier.align(Alignment.CenterEnd), color = saffron, style = MaterialTheme.typography.headlineLarge)
                     }
-                    Text("☼\n✧\n☾", Modifier.align(Alignment.CenterEnd), color = saffron, style = MaterialTheme.typography.headlineLarge)
-                }
-                Spacer(Modifier.height(14.dp))
-                Text(when(language) { AppLanguage.HINDI -> "आपका समेकित वैदिक ज्ञान मंच"; AppLanguage.MAITHILI -> "अहाँक समेकित वैदिक ज्ञान मंच"; AppLanguage.ENGLISH -> "Your integrated traditional knowledge platform" }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(9.dp))
-                LazyVerticalGrid(columns = GridCells.Fixed(2), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-                    items(modules) { module ->
-                        ElevatedCard(Modifier.fillMaxWidth(), shape = RoundedCornerShape(17.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFFFFDF8))) {
-                            Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(module.icon, style = MaterialTheme.typography.headlineMedium, color = Color(0xFF9B4A25))
-                                Text(module.title[language] ?: module.title[AppLanguage.ENGLISH]!!, fontWeight = FontWeight.Bold)
-                                Text(module.description[language] ?: module.description[AppLanguage.ENGLISH]!!, style = MaterialTheme.typography.bodySmall, minLines = 2)
-                                Text(when(language) { AppLanguage.HINDI -> "विकास चरण में"; AppLanguage.MAITHILI -> "विकास जारी"; AppLanguage.ENGLISH -> "In development" }, style = MaterialTheme.typography.labelSmall, color = Color(0xFF9A5528))
+                    Spacer(Modifier.height(14.dp))
+                    Text(when(language) { AppLanguage.HINDI -> "आपका समेकित वैदिक ज्ञान मंच"; AppLanguage.MAITHILI -> "अहाँक समेकित वैदिक ज्ञान मंच"; AppLanguage.ENGLISH -> "Your integrated traditional knowledge platform" }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(9.dp))
+                    LazyVerticalGrid(columns = GridCells.Fixed(2), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
+                        items(modules) { module ->
+                            val isNumerology = module.title[AppLanguage.ENGLISH] == "Numerology"
+                            ElevatedCard(Modifier.fillMaxWidth().clickable(enabled = isNumerology) { showNumerology = true }, shape = RoundedCornerShape(17.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFFFFDF8))) {
+                                Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(module.icon, style = MaterialTheme.typography.headlineMedium, color = Color(0xFF9B4A25))
+                                    Text(module.title[language] ?: module.title[AppLanguage.ENGLISH]!!, fontWeight = FontWeight.Bold)
+                                    Text(module.description[language] ?: module.description[AppLanguage.ENGLISH]!!, style = MaterialTheme.typography.bodySmall, minLines = 2)
+                                    Text(if (isNumerology) "खोलें / Open" else when(language) { AppLanguage.HINDI -> "विकास चरण में"; AppLanguage.MAITHILI -> "विकास जारी"; AppLanguage.ENGLISH -> "In development" }, style = MaterialTheme.typography.labelSmall, color = Color(0xFF9A5528))
+                                }
                             }
                         }
                     }
+                    Text(when(language) { AppLanguage.HINDI -> "ज्योतिष, हस्तरेखा, टैरो और सामुद्रिक व्याख्याएं पारंपरिक मान्यताएं हैं; इन्हें निश्चित या वैज्ञानिक भविष्यवाणी न मानें।"; AppLanguage.MAITHILI -> "ई सभ पारंपरिक व्याख्या अछि, निश्चित वैज्ञानिक भविष्यवाणी नहि।"; AppLanguage.ENGLISH -> "These are traditional interpretations, not scientifically established predictions." }, style = MaterialTheme.typography.labelSmall, color = Color(0xFF6E6259))
+                    Spacer(Modifier.height(6.dp))
                 }
-                Spacer(Modifier.height(8.dp))
-                Text(when(language) { AppLanguage.HINDI -> "ज्योतिष, हस्तरेखा, टैरो और सामुद्रिक व्याख्याएं पारंपरिक मान्यताएं हैं; इन्हें निश्चित या वैज्ञानिक भविष्यवाणी न मानें।"; AppLanguage.MAITHILI -> "ई सभ पारंपरिक व्याख्या अछि, निश्चित वैज्ञानिक भविष्यवाणी नहि।"; AppLanguage.ENGLISH -> "These are traditional interpretations, not scientifically established predictions." }, style = MaterialTheme.typography.labelSmall, color = Color(0xFF6E6259))
-                Spacer(Modifier.height(6.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun NumerologyScreen(modifier: Modifier = Modifier) {
+    var name by remember { mutableStateOf("") }
+    var dob by remember { mutableStateOf("") }
+    var method by remember { mutableStateOf(NumberMethod.CHALDEAN) }
+    var report by remember { mutableStateOf<NumerologyReport?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    Column(modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+        Text("अंक ज्योतिष विश्लेषण", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("जन्मतिथि YYYY-MM-DD प्रारूप में भरें। नामांक के लिए अंग्रेज़ी वर्तनी उपयोग होती है।", style = MaterialTheme.typography.bodySmall)
+        OutlinedTextField(value = name, onValueChange = { name = it; report = null }, label = { Text("पूरा नाम (English spelling)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = dob, onValueChange = { dob = it; report = null }, label = { Text("जन्मतिथि (YYYY-MM-DD)") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii), modifier = Modifier.fillMaxWidth())
+        Text("नामांक पद्धति", fontWeight = FontWeight.SemiBold)
+        NumberMethod.values().forEach { option ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(selected = method == option, onClick = { method = option; report = null })
+                Text(when(option) { NumberMethod.CHALDEAN -> "चाल्डियन"; NumberMethod.PYTHAGOREAN -> "पाइथागोरियन"; NumberMethod.INDIAN_TRADITIONAL -> "भारतीय पारंपरिक (सीमित mapping)" })
+            }
+        }
+        Button(onClick = {
+            try { report = NumerologyEngine.calculate(LocalDate.parse(dob.trim()), name.trim(), method); error = null }
+            catch (_: Exception) { error = "कृपया सही जन्मतिथि (YYYY-MM-DD) और नाम भरें।"; report = null }
+        }, modifier = Modifier.fillMaxWidth()) { Text("गणना करें") }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        report?.let { data ->
+            ElevatedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("आपकी अंक रिपोर्ट", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("जन्मांक: ${data.birthNumber}", style = MaterialTheme.typography.titleMedium)
+                    Text("भाग्यांक: ${data.destinyNumber}", style = MaterialTheme.typography.titleMedium)
+                    Text("नामांक: ${data.nameNumber ?: "उपलब्ध नहीं"}", style = MaterialTheme.typography.titleMedium)
+                    Text("संयुक्त नामांक: ${data.compoundNameNumber ?: "—"}")
+                    HorizontalDivider()
+                    data.explanation.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
+                }
             }
         }
     }
