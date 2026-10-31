@@ -1,4 +1,4 @@
-package in.vedicastra.app.domain
+package com.vedicastra.app.domain
 
 import java.time.LocalDate
 
