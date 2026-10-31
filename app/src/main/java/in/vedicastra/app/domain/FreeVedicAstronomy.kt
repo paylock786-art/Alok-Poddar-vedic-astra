@@ -145,6 +145,21 @@ object FreeVedicAstronomy {
         return result
     }
 
+    fun vimshottariAntardashas(major: VimshottariPeriod): List<VimshottariPeriod> {
+        val startIndex = dashaLords.indexOf(major.lord).coerceAtLeast(0)
+        var cursor = major.startMillis
+        val result = mutableListOf<VimshottariPeriod>()
+        for (i in 0 until 9) {
+            val index = (startIndex + i) % 9
+            val fraction = dashaYears[index] / 120.0
+            val durationMillis = ((major.endMillis - major.startMillis) * fraction).toLong()
+            val end = if (i == 8) major.endMillis else cursor + durationMillis
+            result.add(VimshottariPeriod(dashaLords[index], (end-cursor)/YEAR_MILLIS, cursor, end))
+            cursor = end
+        }
+        return result
+    }
+
     fun currentTransits(epochMillis: Long, natalAscendantSign: Int): List<GrahaPosition> {
         val time = Time.fromMillisecondsSince1970(epochMillis)
         val ayan = lahiriAyanamsha(julianDay(epochMillis))
