@@ -356,6 +356,30 @@ private fun BirthChartScreen(modifier: Modifier = Modifier) {
                         Text("${p.name}: ${FreeVedicAstronomy.signName(p.signIndex)} ${"%.2f".format(p.degreesInSign)}° • भाव ${p.house}")
                     }
                     HorizontalDivider()
+                    val moonLongitude = chart.planets.firstOrNull { it.name == "चन्द्र" }?.longitude
+                    val birthMs = birthEpochMillis
+                    if (moonLongitude != null && birthMs != null) {
+                        val dashas = FreeVedicAstronomy.vimshottariMahadashas(birthMs, moonLongitude, 18)
+                        val now = System.currentTimeMillis()
+                        Text("विंशोत्तरी महादशा", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        dashas.take(9).forEach { period ->
+                            val active = now >= period.startMillis && now < period.endMillis
+                            Text((if (active) "▶ " else "") + "${period.lord}: ${java.time.Instant.ofEpochMilli(period.startMillis).atZone(ZoneId.of(zone)).toLocalDate()} – ${java.time.Instant.ofEpochMilli(period.endMillis).atZone(ZoneId.of(zone)).toLocalDate()}" + if (active) " (वर्तमान)" else "")
+                        }
+                        dashas.firstOrNull { now >= it.startMillis && now < it.endMillis }?.let { major ->
+                            Text("वर्तमान महादशा की अंतर्दशा", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            FreeVedicAstronomy.vimshottariAntardashas(major).forEach { sub ->
+                                val active = now >= sub.startMillis && now < sub.endMillis
+                                Text((if (active) "▶ " else "") + "${major.lord}/${sub.lord}: ${java.time.Instant.ofEpochMilli(sub.startMillis).atZone(ZoneId.of(zone)).toLocalDate()} – ${java.time.Instant.ofEpochMilli(sub.endMillis).atZone(ZoneId.of(zone)).toLocalDate()}")
+                            }
+                        }
+                    }
+                    HorizontalDivider()
+                    Text("वर्तमान गोचर (जन्म लग्न से भाव)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    FreeVedicAstronomy.currentTransits(System.currentTimeMillis(), chart.ascendant.signIndex).forEach { transit ->
+                        Text("${transit.name}: ${FreeVedicAstronomy.signName(transit.signIndex)} • भाव ${transit.house}")
+                    }
+                    HorizontalDivider()
                     Text("लाहिड़ी अयनांश (प्रारंभिक अनुमान): ${"%.4f".format(chart.ayanamsha)}°", style = MaterialTheme.typography.bodySmall)
                 }
             }
