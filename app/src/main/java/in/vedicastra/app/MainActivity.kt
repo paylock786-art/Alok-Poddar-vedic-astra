@@ -32,6 +32,10 @@ import com.vedicastra.app.domain.TarotDeck
 import com.vedicastra.app.domain.TarotCard
 import com.vedicastra.app.domain.RemedyCatalog
 import com.vedicastra.app.domain.PredictionRepository
+import com.vedicastra.app.domain.FreeVedicAstronomy
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
 import androidx.compose.ui.platform.LocalContext
 import java.time.LocalDate
 
@@ -50,7 +54,12 @@ class MainActivity : ComponentActivity() {
 private fun VedicAstraApp() {
     var language by remember { mutableStateOf(AppLanguage.HINDI) }
     var showNumerology by remember { mutableStateOf(false) }
-    var showNakshatra by remember { mutableStateOf(false) }\n    var showTarot by remember { mutableStateOf(false) }\n    var showRemedies by remember { mutableStateOf(false) }\n    var showVerification by remember { mutableStateOf(false) }
+    var showNakshatra by remember { mutableStateOf(false) }
+    var showTarot by remember { mutableStateOf(false) }
+    var showRemedies by remember { mutableStateOf(false) }
+    var showVerification by remember { mutableStateOf(false) }
+    var showPanchang by remember { mutableStateOf(false) }
+    var showBirthChart by remember { mutableStateOf(false) }
     val modules = listOf(
         AstraModule("☀", mapOf(AppLanguage.HINDI to "वैदिक ज्योतिष", AppLanguage.MAITHILI to "वैदिक ज्योतिष", AppLanguage.ENGLISH to "Vedic Astrology"), mapOf(AppLanguage.HINDI to "जन्मकुंडली, दशा, गोचर और योग", AppLanguage.MAITHILI to "जन्मकुंडली, दशा आ गोचर", AppLanguage.ENGLISH to "Birth chart, dashas, transits and yogas")),
         AstraModule("☾", mapOf(AppLanguage.HINDI to "मिथिला पंचांग", AppLanguage.MAITHILI to "मिथिला पंचांग", AppLanguage.ENGLISH to "Mithila Panchang"), mapOf(AppLanguage.HINDI to "तिथि, नक्षत्र, मुहूर्त और पंचांग तुलना", AppLanguage.MAITHILI to "तिथि, नक्षत्र आ मुहूर्त", AppLanguage.ENGLISH to "Tithi, nakshatra, muhurta and almanac comparison")),
@@ -67,7 +76,7 @@ private fun VedicAstraApp() {
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF8B3D20), secondary = Color(0xFFB77B32), background = Color(0xFFFFF8ED), surface = Color(0xFFFFFCF6))) {
         Scaffold(containerColor = Color(0xFFFFF8ED), topBar = {
             TopAppBar(title = { Column { Text("VEDIC ASTRA", fontWeight = FontWeight.ExtraBold); Text("सनातन ज्ञान • खगोलीय गणना", style = MaterialTheme.typography.labelSmall) } },
-                navigationIcon = { if (showNumerology || showNakshatra || showTarot || showRemedies || showVerification) TextButton(onClick = { showNumerology = false; showNakshatra = false; showTarot = false; showRemedies = false; showVerification = false }) { Text("←") } },
+                navigationIcon = { if (showNumerology || showNakshatra || showTarot || showRemedies || showVerification || showPanchang || showBirthChart) TextButton(onClick = { showNumerology = false; showNakshatra = false; showTarot = false; showRemedies = false; showVerification = false; showPanchang = false; showBirthChart = false }) { Text("←") } },
                 actions = {
                     var expanded by remember { mutableStateOf(false) }
                     TextButton(onClick = { expanded = true }) { Text(when(language) { AppLanguage.HINDI -> "हिन्दी"; AppLanguage.MAITHILI -> "मैथिली"; AppLanguage.ENGLISH -> "English" }) }
@@ -78,9 +87,15 @@ private fun VedicAstraApp() {
                     }
                 })
         }) { padding ->
-            if (showNumerology) {
-                NumerologyScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
-            } else {
+            when {
+                showNumerology -> NumerologyScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
+                showNakshatra -> NakshatraScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
+                showTarot -> TarotScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
+                showRemedies -> RemediesScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
+                showVerification -> VerificationScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
+                showPanchang -> PanchangScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
+                showBirthChart -> BirthChartScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
+                else -> {
                 Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 14.dp)) {
                     Box(Modifier.fillMaxWidth().height(190.dp).background(Brush.verticalGradient(listOf(Color(0xFF5B2119), Color(0xFF32120F), Color(0xFF1E1420))), RoundedCornerShape(22.dp)).padding(18.dp)) {
                         Column(Modifier.align(Alignment.CenterStart).fillMaxWidth(0.75f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -96,9 +111,19 @@ private fun VedicAstraApp() {
                     Spacer(Modifier.height(9.dp))
                     LazyVerticalGrid(columns = GridCells.Fixed(2), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
                         items(modules) { module ->
-                            val isNumerology = module.title[AppLanguage.ENGLISH] == "Numerology"
-                            val isNakshatra = module.title[AppLanguage.ENGLISH] == "Nakshatra Guide"
-                            ElevatedCard(Modifier.fillMaxWidth().clickable(enabled = isNumerology || isNakshatra) { if (isNumerology) showNumerology = true else showNakshatra = true }, shape = RoundedCornerShape(17.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFFFFDF8))) {
+                            val key = module.title[AppLanguage.ENGLISH]
+                            val enabled = key in listOf("Numerology", "Nakshatra Guide", "Tarot Reading", "Remedies & Puja", "Prediction Verification", "Mithila Panchang", "Vedic Astrology")
+                            ElevatedCard(Modifier.fillMaxWidth().clickable(enabled = enabled) {
+                                when (key) {
+                                    "Numerology" -> showNumerology = true
+                                    "Nakshatra Guide" -> showNakshatra = true
+                                    "Tarot Reading" -> showTarot = true
+                                    "Remedies & Puja" -> showRemedies = true
+                                    "Prediction Verification" -> showVerification = true
+                                    "Mithila Panchang" -> showPanchang = true
+                                    "Vedic Astrology" -> showBirthChart = true
+                                }
+                            }, shape = RoundedCornerShape(17.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFFFFDF8))) {
                                 Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text(module.icon, style = MaterialTheme.typography.headlineMedium, color = Color(0xFF9B4A25))
                                     Text(module.title[language] ?: module.title[AppLanguage.ENGLISH]!!, fontWeight = FontWeight.Bold)
@@ -110,6 +135,7 @@ private fun VedicAstraApp() {
                     }
                     Text(when(language) { AppLanguage.HINDI -> "ज्योतिष, हस्तरेखा, टैरो और सामुद्रिक व्याख्याएं पारंपरिक मान्यताएं हैं; इन्हें निश्चित या वैज्ञानिक भविष्यवाणी न मानें।"; AppLanguage.MAITHILI -> "ई सभ पारंपरिक व्याख्या अछि, निश्चित वैज्ञानिक भविष्यवाणी नहि।"; AppLanguage.ENGLISH -> "These are traditional interpretations, not scientifically established predictions." }, style = MaterialTheme.typography.labelSmall, color = Color(0xFF6E6259))
                     Spacer(Modifier.height(6.dp))
+                }
                 }
             }
         }
@@ -248,5 +274,92 @@ private fun VerificationScreen(modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+}
+
+
+@Composable
+private fun PanchangScreen(modifier: Modifier = Modifier) {
+    var date by remember { mutableStateOf(LocalDate.now().toString()) }
+    var time by remember { mutableStateOf("12:00") }
+    var latitude by remember { mutableStateOf("25.61") }
+    var longitude by remember { mutableStateOf("85.14") }
+    var zone by remember { mutableStateOf("Asia/Kolkata") }
+    var result by remember { mutableStateOf<com.vedicastra.app.domain.PanchangResult?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    Column(modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        Text("मिथिला पंचांग • खगोलीय गणना", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("तिथि, नक्षत्र, योग और करण के लिए स्थान व समय भरें। स्थान के निर्देशांक बदल सकते हैं।", style = MaterialTheme.typography.bodySmall)
+        OutlinedTextField(date, { date = it; result = null }, label = { Text("तारीख YYYY-MM-DD") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(time, { time = it; result = null }, label = { Text("समय HH:MM (24-hour)") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(latitude, { latitude = it }, label = { Text("अक्षांश (Latitude)") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(longitude, { longitude = it }, label = { Text("देशांतर (Longitude, East +)") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(zone, { zone = it }, label = { Text("Time zone (उदा. Asia/Kolkata)") }, modifier = Modifier.fillMaxWidth())
+        Button(onClick = {
+            try {
+                val instant = LocalDateTime.parse("${date.trim()}T${time.trim()}").atZone(ZoneId.of(zone.trim())).toInstant()
+                result = FreeVedicAstronomy.panchang(instant.toEpochMilli(), latitude.toDouble(), longitude.toDouble(), zone.trim())
+                error = null
+            } catch (e: Exception) { error = "तारीख, समय, निर्देशांक या time zone जाँचें: ${e.message}"; result = null }
+        }, modifier = Modifier.fillMaxWidth()) { Text("पंचांग निकालें") }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        result?.let { p ->
+            ElevatedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text(p.dateTime, fontWeight = FontWeight.Bold)
+                    Text("तिथि: ${p.tithi} • ${p.paksha}")
+                    Text("नक्षत्र: ${p.nakshatra}")
+                    Text("योग: ${p.yoga}")
+                    Text("करण: ${p.karana}")
+                    Text("चन्द्रमा का प्रकाशित भाग: ${"%.1f".format(p.moonPhasePercent)}%")
+                    Text("सूर्योदय: ${p.sunrise ?: "उपलब्ध नहीं"}")
+                    Text("सूर्यास्त: ${p.sunset ?: "उपलब्ध नहीं"}")
+                    Text("लाहिड़ी अयनांश (प्रारंभिक अनुमान): ${"%.4f".format(p.ayanamsha)}°", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        Text("नोट: यह प्रारंभिक offline गणना है। मिथिला पंचांग के प्रकाशित संस्करण से तिथि-सीमा, स्थानीय नियम और अयनांश का सत्यापन आवश्यक है।", style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Composable
+private fun BirthChartScreen(modifier: Modifier = Modifier) {
+    var date by remember { mutableStateOf("1984-02-02") }
+    var time by remember { mutableStateOf("23:00") }
+    var latitude by remember { mutableStateOf("25.61") }
+    var longitude by remember { mutableStateOf("85.14") }
+    var zone by remember { mutableStateOf("Asia/Kolkata") }
+    var result by remember { mutableStateOf<com.vedicastra.app.domain.BirthChartResult?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    Column(modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        Text("जन्मकुंडली • लग्न और ग्रह", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("जन्म की सही तारीख, स्थानीय समय और जन्मस्थान के निर्देशांक भरें।", style = MaterialTheme.typography.bodySmall)
+        OutlinedTextField(date, { date = it; result = null }, label = { Text("जन्म तारीख YYYY-MM-DD") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(time, { time = it; result = null }, label = { Text("जन्म समय HH:MM (24-hour)") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(latitude, { latitude = it }, label = { Text("अक्षांश (Latitude)") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(longitude, { longitude = it }, label = { Text("देशांतर (Longitude, East +)") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(zone, { zone = it }, label = { Text("Time zone") }, modifier = Modifier.fillMaxWidth())
+        Button(onClick = {
+            try {
+                val instant = LocalDateTime.parse("${date.trim()}T${time.trim()}").atZone(ZoneId.of(zone.trim())).toInstant()
+                result = FreeVedicAstronomy.birthChart(instant.toEpochMilli(), latitude.toDouble(), longitude.toDouble())
+                error = null
+            } catch (e: Exception) { error = "जन्म विवरण जाँचें: ${e.message}"; result = null }
+        }, modifier = Modifier.fillMaxWidth()) { Text("कुंडली गणना करें") }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        result?.let { chart ->
+            ElevatedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("लग्न: ${FreeVedicAstronomy.signName(chart.ascendant.signIndex)} ${"%.2f".format(chart.ascendant.degreesInSign)}°", fontWeight = FontWeight.Bold)
+                    Text("ग्रह स्थिति • राशि आधारित Whole Sign भाव", style = MaterialTheme.typography.titleMedium)
+                    chart.planets.forEach { p ->
+                        Text("${p.name}: ${FreeVedicAstronomy.signName(p.signIndex)} ${"%.2f".format(p.degreesInSign)}° • भाव ${p.house}")
+                    }
+                    HorizontalDivider()
+                    Text("लाहिड़ी अयनांश (प्रारंभिक अनुमान): ${"%.4f".format(chart.ayanamsha)}°", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        Text("यह प्रारंभिक राशि-आधारित चार्ट है; चंद्र/सूर्य की गति, राहु-केतु, लग्न और भावों को प्रमाणित पंचांग व स्वतंत्र ephemeris से cross-check करना आवश्यक है।", style = MaterialTheme.typography.labelSmall)
     }
 }
