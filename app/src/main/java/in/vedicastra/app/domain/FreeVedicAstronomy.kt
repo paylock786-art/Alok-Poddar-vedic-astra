@@ -120,5 +120,52 @@ object FreeVedicAstronomy {
         return BirthChartResult(asc, planets, ayan)
     }
 
+    private val dashaLords = listOf("केतु","शुक्र","सूर्य","चन्द्र","मंगल","राहु","गुरु","शनि","बुध")
+    private val dashaYears = listOf(7.0,20.0,6.0,10.0,7.0,18.0,16.0,19.0,17.0)
+    private const val NAKSHATRA_SPAN = 360.0 / 27.0
+    private const val YEAR_MILLIS = 365.2425 * 24.0 * 60.0 * 60.0 * 1000.0
+
+    fun vimshottariMahadashas(birthEpochMillis: Long, siderealMoonLongitude: Double, count: Int = 9): List<VimshottariPeriod> {
+        require(count in 1..18)
+        val moon = normalize(siderealMoonLongitude)
+        val nakshatraIndex = floor(moon / NAKSHATRA_SPAN).toInt().coerceIn(0,26)
+        val offsetInNakshatra = moon - nakshatraIndex * NAKSHATRA_SPAN
+        val elapsedFraction = (offsetInNakshatra / NAKSHATRA_SPAN).coerceIn(0.0,1.0)
+        val firstLordIndex = nakshatraIndex % 9
+        val firstDuration = dashaYears[firstLordIndex] * (1.0 - elapsedFraction)
+        var cursor = birthEpochMillis
+        val result = mutableListOf<VimshottariPeriod>()
+        for (i in 0 until count) {
+            val lordIndex = (firstLordIndex + i) % 9
+            val duration = if (i == 0) firstDuration else dashaYears[lordIndex]
+            val end = cursor + (duration * YEAR_MILLIS).toLong()
+            result.add(VimshottariPeriod(dashaLords[lordIndex], duration, cursor, end))
+            cursor = end
+        }
+        return result
+    }
+
+    fun currentTransits(epochMillis: Long, natalAscendantSign: Int): List<GrahaPosition> {
+        val time = Time.fromMillisecondsSince1970(epochMillis)
+        val ayan = lahiriAyanamsha(julianDay(epochMillis))
+        val bodies = listOf(
+            "सूर्य" to Body.Sun, "चन्द्र" to Body.Moon, "बुध" to Body.Mercury,
+            "शुक्र" to Body.Venus, "मंगल" to Body.Mars, "गुरु" to Body.Jupiter, "शनि" to Body.Saturn
+        )
+        val result = bodies.map { (name, body) ->
+            val sidereal = normalize(longitude(body, time) - ayan)
+            val sign = floor(sidereal / 30.0).toInt()
+            GrahaPosition(name, sidereal, sign, sidereal % 30.0, house = ((sign - natalAscendantSign + 12) % 12) + 1)
+        }.toMutableList()
+        val t = (julianDay(epochMillis) - 2451545.0) / 36525.0
+        val node = normalize(125.04452 - 1934.136261*t + 0.0020708*t*t + t*t*t/450000.0 - ayan)
+        val rahuSign = floor(node / 30.0).toInt()
+        result.add(GrahaPosition("राहु", node, rahuSign, node % 30.0, house = ((rahuSign - natalAscendantSign + 12) % 12) + 1))
+        val ketu = normalize(node + 180.0)
+        val ketuSign = floor(ketu / 30.0).toInt()
+        result.add(GrahaPosition("केतु", ketu, ketuSign, ketu % 30.0, house = ((ketuSign - natalAscendantSign + 12) % 12) + 1))
+        return result
+    }
+
     fun signName(index: Int): String = signs[index.mod(12)]
 }
