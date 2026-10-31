@@ -28,6 +28,9 @@ import com.vedicastra.app.domain.NumerologyEngine
 import com.vedicastra.app.domain.NumberMethod
 import com.vedicastra.app.domain.NumerologyReport
 import com.vedicastra.app.domain.NakshatraCatalog
+import com.vedicastra.app.domain.TarotDeck
+import com.vedicastra.app.domain.TarotCard
+import com.vedicastra.app.domain.RemedyCatalog
 import java.time.LocalDate
 
 private enum class AppLanguage { HINDI, MAITHILI, ENGLISH }
@@ -45,7 +48,7 @@ class MainActivity : ComponentActivity() {
 private fun VedicAstraApp() {
     var language by remember { mutableStateOf(AppLanguage.HINDI) }
     var showNumerology by remember { mutableStateOf(false) }
-    var showNakshatra by remember { mutableStateOf(false) }
+    var showNakshatra by remember { mutableStateOf(false) }\n    var showTarot by remember { mutableStateOf(false) }\n    var showRemedies by remember { mutableStateOf(false) }
     val modules = listOf(
         AstraModule("☀", mapOf(AppLanguage.HINDI to "वैदिक ज्योतिष", AppLanguage.MAITHILI to "वैदिक ज्योतिष", AppLanguage.ENGLISH to "Vedic Astrology"), mapOf(AppLanguage.HINDI to "जन्मकुंडली, दशा, गोचर और योग", AppLanguage.MAITHILI to "जन्मकुंडली, दशा आ गोचर", AppLanguage.ENGLISH to "Birth chart, dashas, transits and yogas")),
         AstraModule("☾", mapOf(AppLanguage.HINDI to "मिथिला पंचांग", AppLanguage.MAITHILI to "मिथिला पंचांग", AppLanguage.ENGLISH to "Mithila Panchang"), mapOf(AppLanguage.HINDI to "तिथि, नक्षत्र, मुहूर्त और पंचांग तुलना", AppLanguage.MAITHILI to "तिथि, नक्षत्र आ मुहूर्त", AppLanguage.ENGLISH to "Tithi, nakshatra, muhurta and almanac comparison")),
@@ -62,7 +65,7 @@ private fun VedicAstraApp() {
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF8B3D20), secondary = Color(0xFFB77B32), background = Color(0xFFFFF8ED), surface = Color(0xFFFFFCF6))) {
         Scaffold(containerColor = Color(0xFFFFF8ED), topBar = {
             TopAppBar(title = { Column { Text("VEDIC ASTRA", fontWeight = FontWeight.ExtraBold); Text("सनातन ज्ञान • खगोलीय गणना", style = MaterialTheme.typography.labelSmall) } },
-                navigationIcon = { if (showNumerology || showNakshatra) TextButton(onClick = { showNumerology = false; showNakshatra = false }) { Text("←") } },
+                navigationIcon = { if (showNumerology || showNakshatra || showTarot || showRemedies) TextButton(onClick = { showNumerology = false; showNakshatra = false; showTarot = false; showRemedies = false }) { Text("←") } },
                 actions = {
                     var expanded by remember { mutableStateOf(false) }
                     TextButton(onClick = { expanded = true }) { Text(when(language) { AppLanguage.HINDI -> "हिन्दी"; AppLanguage.MAITHILI -> "मैथिली"; AppLanguage.ENGLISH -> "English" }) }
@@ -98,7 +101,7 @@ private fun VedicAstraApp() {
                                     Text(module.icon, style = MaterialTheme.typography.headlineMedium, color = Color(0xFF9B4A25))
                                     Text(module.title[language] ?: module.title[AppLanguage.ENGLISH]!!, fontWeight = FontWeight.Bold)
                                     Text(module.description[language] ?: module.description[AppLanguage.ENGLISH]!!, style = MaterialTheme.typography.bodySmall, minLines = 2)
-                                    Text(if (isNumerology || isNakshatra) "खोलें / Open" else when(language) { AppLanguage.HINDI -> "विकास चरण में"; AppLanguage.MAITHILI -> "विकास जारी"; AppLanguage.ENGLISH -> "In development" }, style = MaterialTheme.typography.labelSmall, color = Color(0xFF9A5528))
+                                    Text(if (enabled) "खोलें / Open" else when(language) { AppLanguage.HINDI -> "विकास चरण में"; AppLanguage.MAITHILI -> "विकास जारी"; AppLanguage.ENGLISH -> "In development" }, style = MaterialTheme.typography.labelSmall, color = Color(0xFF9A5528))
                                 }
                             }
                         }
@@ -166,6 +169,44 @@ private fun NakshatraScreen(modifier: Modifier = Modifier) {
                         Text("अधिष्ठाता: ${item.deity}", style = MaterialTheme.typography.bodySmall)
                         Text("प्रतीक: ${item.symbol}", style = MaterialTheme.typography.bodySmall, color = Color(0xFF765B45))
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TarotScreen(modifier: Modifier = Modifier) {
+    var drawn by remember { mutableStateOf(emptyList<Pair<TarotCard, Boolean>>()) }
+    Column(modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("टैरो रीडिंग • 78 कार्ड", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("तीन कार्ड का सामान्य Past–Present–Future spread। कार्ड यादृच्छिक रूप से चुने जाते हैं; इसे आत्मचिंतन/मनोरंजन की पारंपरिक विधि मानें, निश्चित भविष्यवाणी नहीं।", style = MaterialTheme.typography.bodySmall)
+        Button(onClick = { drawn = TarotDeck.draw(3) }, modifier = Modifier.fillMaxWidth()) { Text("तीन कार्ड चुनें") }
+        val positions = listOf("अतीत / Past", "वर्तमान / Present", "आगे की दिशा / Next")
+        drawn.forEachIndexed { index, pair ->
+            ElevatedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(positions[index], color = Color(0xFF9B4A25), fontWeight = FontWeight.Bold)
+                    Text(pair.first.name + if (pair.second) " • उल्टा / Reversed" else " • सीधा / Upright", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(if (pair.second) pair.first.reversed else pair.first.upright)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RemediesScreen(modifier: Modifier = Modifier) {
+    Column(modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("पूजा-पाठ एवं पारंपरिक उपाय", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("नीचे सामान्य धार्मिक परंपराओं का परिचय है। व्यक्तिगत मुहूर्त/ज्योतिषीय उपाय का दावा नहीं किया जा रहा।", style = MaterialTheme.typography.bodySmall)
+        RemedyCatalog.all.forEach { remedy ->
+            ElevatedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(remedy.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(remedy.tradition, color = Color(0xFF9B4A25), style = MaterialTheme.typography.labelMedium)
+                    Text(remedy.practice, style = MaterialTheme.typography.bodyMedium)
+                    Text("ध्यान दें: ${remedy.caution}", style = MaterialTheme.typography.bodySmall, color = Color(0xFF765B45))
                 }
             }
         }
