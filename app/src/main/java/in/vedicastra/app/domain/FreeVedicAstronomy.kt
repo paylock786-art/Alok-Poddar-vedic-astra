@@ -80,14 +80,32 @@ object FreeVedicAstronomy {
         val paksha = if (tithiIndex < 15) "शुक्ल पक्ष" else "कृष्ण पक्ष"
         val tithiName = if (tithiIndex == 14) "पूर्णिमा" else if (tithiIndex == 29) "अमावस्या" else tithis[tithiIndex % 15]
         val observer = Observer(latitude, longitudeEast, 0.0)
-        val rise = searchRiseSet(Body.Sun, observer, Direction.Rise, time, 2.0)
-        val set = searchRiseSet(Body.Sun, observer, Direction.Set, time, 2.0)
-        val local = Instant.ofEpochMilli(epochMillis).atZone(ZoneId.of(zoneId)).toString()
+        val zone = ZoneId.of(zoneId)
+        val localDate = Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalDate()
+        val dayStart = localDate.atStartOfDay(zone).toInstant().toEpochMilli()
+        val dayTime = Time.fromMillisecondsSince1970(dayStart)
+        val rise = searchRiseSet(Body.Sun, observer, Direction.Rise, dayTime, 1.5)
+        val set = searchRiseSet(Body.Sun, observer, Direction.Set, dayTime, 1.5)
+        val local = Instant.ofEpochMilli(epochMillis).atZone(zone).toString()
         val illumination = illumination(Body.Moon, time).phaseFraction * 100.0
+        fun localClock(value: Time?): String? = value?.let { Instant.ofEpochMilli(it.toMillisecondsSince1970()).atZone(zone).toLocalTime().toString() }
+        fun interval(from: Long, to: Long): String = "${Instant.ofEpochMilli(from).atZone(zone).toLocalTime()} – ${Instant.ofEpochMilli(to).atZone(zone).toLocalTime()}"
+        val weekday = localDate.dayOfWeek.value % 7 // Sunday=0
+        val rahuSegment = intArrayOf(8,2,7,5,6,4,3)[weekday]
+        val yamaSegment = intArrayOf(5,4,3,2,1,7,6)[weekday]
+        val sunriseMs = rise?.toMillisecondsSince1970()
+        val sunsetMs = set?.toMillisecondsSince1970()
+        val rahu = if (sunriseMs != null && sunsetMs != null) {
+            val segment = (sunsetMs - sunriseMs) / 8L
+            interval(sunriseMs + (rahuSegment-1)*segment, sunriseMs + rahuSegment*segment)
+        } else null
+        val yama = if (sunriseMs != null && sunsetMs != null) {
+            val segment = (sunsetMs - sunriseMs) / 8L
+            interval(sunriseMs + (yamaSegment-1)*segment, sunriseMs + yamaSegment*segment)
+        } else null
         return PanchangResult(local, ayan, sun, moon, tithiName, paksha,
             nakshatras[floor(moon / (360.0/27.0)).toInt().coerceIn(0,26)],
-            yogas[yogaIndex], karana, illumination, rise?.let { Instant.ofEpochMilli(it.toMillisecondsSince1970()).atZone(ZoneId.of(zoneId)).toLocalTime().toString() },
-            set?.let { Instant.ofEpochMilli(it.toMillisecondsSince1970()).atZone(ZoneId.of(zoneId)).toLocalTime().toString() })
+            yogas[yogaIndex], karana, illumination, localClock(rise), localClock(set), rahu, yama)
     }
 
     fun birthChart(epochMillis: Long, latitude: Double, longitudeEast: Double): BirthChartResult {
