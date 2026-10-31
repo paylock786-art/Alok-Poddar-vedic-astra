@@ -31,6 +31,8 @@ import com.vedicastra.app.domain.NakshatraCatalog
 import com.vedicastra.app.domain.TarotDeck
 import com.vedicastra.app.domain.TarotCard
 import com.vedicastra.app.domain.RemedyCatalog
+import com.vedicastra.app.domain.PredictionRepository
+import androidx.compose.ui.platform.LocalContext
 import java.time.LocalDate
 
 private enum class AppLanguage { HINDI, MAITHILI, ENGLISH }
@@ -48,7 +50,7 @@ class MainActivity : ComponentActivity() {
 private fun VedicAstraApp() {
     var language by remember { mutableStateOf(AppLanguage.HINDI) }
     var showNumerology by remember { mutableStateOf(false) }
-    var showNakshatra by remember { mutableStateOf(false) }\n    var showTarot by remember { mutableStateOf(false) }\n    var showRemedies by remember { mutableStateOf(false) }
+    var showNakshatra by remember { mutableStateOf(false) }\n    var showTarot by remember { mutableStateOf(false) }\n    var showRemedies by remember { mutableStateOf(false) }\n    var showVerification by remember { mutableStateOf(false) }
     val modules = listOf(
         AstraModule("☀", mapOf(AppLanguage.HINDI to "वैदिक ज्योतिष", AppLanguage.MAITHILI to "वैदिक ज्योतिष", AppLanguage.ENGLISH to "Vedic Astrology"), mapOf(AppLanguage.HINDI to "जन्मकुंडली, दशा, गोचर और योग", AppLanguage.MAITHILI to "जन्मकुंडली, दशा आ गोचर", AppLanguage.ENGLISH to "Birth chart, dashas, transits and yogas")),
         AstraModule("☾", mapOf(AppLanguage.HINDI to "मिथिला पंचांग", AppLanguage.MAITHILI to "मिथिला पंचांग", AppLanguage.ENGLISH to "Mithila Panchang"), mapOf(AppLanguage.HINDI to "तिथि, नक्षत्र, मुहूर्त और पंचांग तुलना", AppLanguage.MAITHILI to "तिथि, नक्षत्र आ मुहूर्त", AppLanguage.ENGLISH to "Tithi, nakshatra, muhurta and almanac comparison")),
@@ -65,7 +67,7 @@ private fun VedicAstraApp() {
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF8B3D20), secondary = Color(0xFFB77B32), background = Color(0xFFFFF8ED), surface = Color(0xFFFFFCF6))) {
         Scaffold(containerColor = Color(0xFFFFF8ED), topBar = {
             TopAppBar(title = { Column { Text("VEDIC ASTRA", fontWeight = FontWeight.ExtraBold); Text("सनातन ज्ञान • खगोलीय गणना", style = MaterialTheme.typography.labelSmall) } },
-                navigationIcon = { if (showNumerology || showNakshatra || showTarot || showRemedies) TextButton(onClick = { showNumerology = false; showNakshatra = false; showTarot = false; showRemedies = false }) { Text("←") } },
+                navigationIcon = { if (showNumerology || showNakshatra || showTarot || showRemedies || showVerification) TextButton(onClick = { showNumerology = false; showNakshatra = false; showTarot = false; showRemedies = false; showVerification = false }) { Text("←") } },
                 actions = {
                     var expanded by remember { mutableStateOf(false) }
                     TextButton(onClick = { expanded = true }) { Text(when(language) { AppLanguage.HINDI -> "हिन्दी"; AppLanguage.MAITHILI -> "मैथिली"; AppLanguage.ENGLISH -> "English" }) }
@@ -207,6 +209,42 @@ private fun RemediesScreen(modifier: Modifier = Modifier) {
                     Text(remedy.tradition, color = Color(0xFF9B4A25), style = MaterialTheme.typography.labelMedium)
                     Text(remedy.practice, style = MaterialTheme.typography.bodyMedium)
                     Text("ध्यान दें: ${remedy.caution}", style = MaterialTheme.typography.bodySmall, color = Color(0xFF765B45))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VerificationScreen(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val repository = remember { PredictionRepository(context.applicationContext) }
+    var system by remember { mutableStateOf("वैदिक ज्योतिष") }
+    var forecast by remember { mutableStateOf("") }
+    var dueAt by remember { mutableStateOf("") }
+    var records by remember { mutableStateOf(repository.all()) }
+    Column(modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("पूर्वानुमान सत्यापन", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("हर पूर्वानुमान को पहले दर्ज करें और समय पूरा होने पर वास्तविक परिणाम जोड़ें। इससे बाद में निष्पक्ष समीक्षा संभव होगी।", style = MaterialTheme.typography.bodySmall)
+        OutlinedTextField(value = system, onValueChange = { system = it }, label = { Text("पद्धति / स्रोत") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = forecast, onValueChange = { forecast = it }, label = { Text("पूर्वानुमान (स्पष्ट और मापने योग्य)") }, minLines = 2, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = dueAt, onValueChange = { dueAt = it }, label = { Text("जाँच की तारीख (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
+        Button(onClick = {
+            if (forecast.isNotBlank() && dueAt.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
+                repository.add(system.trim(), forecast.trim(), dueAt.trim())
+                forecast = ""; dueAt = ""; records = repository.all()
+            }
+        }, modifier = Modifier.fillMaxWidth()) { Text("पूर्वानुमान सुरक्षित करें") }
+        Text("दर्ज रिकॉर्ड: ${records.size}", fontWeight = FontWeight.Bold)
+        records.forEach { record ->
+            var outcome by remember(record.id, record.outcome) { mutableStateOf(record.outcome) }
+            ElevatedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(record.system + " • " + record.dueAt, color = Color(0xFF9B4A25), fontWeight = FontWeight.Bold)
+                    Text(record.forecast)
+                    OutlinedTextField(value = outcome, onValueChange = { outcome = it }, label = { Text("वास्तविक परिणाम / प्रमाण") }, modifier = Modifier.fillMaxWidth())
+                    Button(onClick = { repository.updateOutcome(record.id, outcome.trim()); records = repository.all() }, enabled = outcome.isNotBlank()) { Text("परिणाम अपडेट करें") }
+                    if (record.outcome.isNotBlank()) Text("पहले दर्ज परिणाम: ${record.outcome}", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
