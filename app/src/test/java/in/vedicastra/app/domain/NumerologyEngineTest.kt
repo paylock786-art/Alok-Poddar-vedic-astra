@@ -12,10 +12,10 @@ class NumerologyEngineTest {
         assertEquals(5, NumerologyEngine.calculate(LocalDate.of(1984, 2, 23), "", NumberMethod.INDIAN_TRADITIONAL).birthNumber)
     }
     @Test fun destinyNumberUsesAllDateDigits() {
-        assertEquals(2, NumerologyEngine.calculate(LocalDate.of(1984, 2, 2), "", NumberMethod.INDIAN_TRADITIONAL).destinyNumber)
+        assertEquals(8, NumerologyEngine.calculate(LocalDate.of(1984, 2, 2), "", NumberMethod.INDIAN_TRADITIONAL).destinyNumber)
     }
     @Test fun nameNumberIsComputedForLatinName() {
         val report = NumerologyEngine.calculate(LocalDate.of(2000, 1, 1), "ALOK", NumberMethod.CHALDEAN)
-        assertEquals(1, report.nameNumber)
+        assertEquals(4, report.nameNumber)
     }
 }
