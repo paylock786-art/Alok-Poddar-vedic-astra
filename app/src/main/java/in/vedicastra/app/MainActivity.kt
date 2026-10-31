@@ -33,6 +33,10 @@ import com.vedicastra.app.domain.TarotCard
 import com.vedicastra.app.domain.RemedyCatalog
 import com.vedicastra.app.domain.PredictionRepository
 import com.vedicastra.app.domain.FreeVedicAstronomy
+import com.vedicastra.app.ui.AstraLanguage
+import com.vedicastra.app.ui.PalmistryOfflineScreen
+import com.vedicastra.app.ui.SamudrikaVisualScreen
+import com.vedicastra.app.ui.CelestialGalleryScreen
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
@@ -60,8 +64,11 @@ private fun VedicAstraApp() {
     var showVerification by remember { mutableStateOf(false) }
     var showPanchang by remember { mutableStateOf(false) }
     var showBirthChart by remember { mutableStateOf(false) }
+    var showPalmistry by remember { mutableStateOf(false) }
+    var showSamudrika by remember { mutableStateOf(false) }
+    var showCelestial by remember { mutableStateOf(false) }
     val modules = listOf(
-        AstraModule("☀", mapOf(AppLanguage.HINDI to "वैदिक ज्योतिष", AppLanguage.MAITHILI to "वैदिक ज्योतिष", AppLanguage.ENGLISH to "Vedic Astrology"), mapOf(AppLanguage.HINDI to "जन्मकुंडली, दशा, गोचर और योग", AppLanguage.MAITHILI to "जन्मकुंडली, दशा आ गोचर", AppLanguage.ENGLISH to "Birth chart, dashas, transits and yogas")),
+        AstraModule("☀", mapOf(AppLanguage.HINDI to "वैदिक ज्योतिष", AppLanguage.MAITHILI to "वैदिक ज्योतिष", AppLanguage.ENGLISH to "Vedic Astrology", "Palmistry AI", "Face Reading", "Celestial Gallery"), mapOf(AppLanguage.HINDI to "जन्मकुंडली, दशा, गोचर और योग", AppLanguage.MAITHILI to "जन्मकुंडली, दशा आ गोचर", AppLanguage.ENGLISH to "Birth chart, dashas, transits and yogas")),
         AstraModule("☾", mapOf(AppLanguage.HINDI to "मिथिला पंचांग", AppLanguage.MAITHILI to "मिथिला पंचांग", AppLanguage.ENGLISH to "Mithila Panchang"), mapOf(AppLanguage.HINDI to "तिथि, नक्षत्र, मुहूर्त और पंचांग तुलना", AppLanguage.MAITHILI to "तिथि, नक्षत्र आ मुहूर्त", AppLanguage.ENGLISH to "Tithi, nakshatra, muhurta and almanac comparison")),
         AstraModule("१", mapOf(AppLanguage.HINDI to "अंक ज्योतिष", AppLanguage.MAITHILI to "अंक ज्योतिष", AppLanguage.ENGLISH to "Numerology"), mapOf(AppLanguage.HINDI to "जन्मांक, भाग्यांक, नामांक और अंक-चक्र", AppLanguage.MAITHILI to "जन्मांक, भाग्यांक आ नामांक", AppLanguage.ENGLISH to "Birth, destiny and name numbers")),
         AstraModule("✋", mapOf(AppLanguage.HINDI to "हस्तरेखा AI", AppLanguage.MAITHILI to "हस्तरेखा AI", AppLanguage.ENGLISH to "Palmistry AI"), mapOf(AppLanguage.HINDI to "हथेली की रेखाओं का पारंपरिक विश्लेषण", AppLanguage.MAITHILI to "हथेली रेखाक पारंपरिक अध्ययन", AppLanguage.ENGLISH to "Traditional interpretation of palm lines")),
@@ -69,6 +76,7 @@ private fun VedicAstraApp() {
         AstraModule("◉", mapOf(AppLanguage.HINDI to "सामुद्रिक शास्त्र", AppLanguage.MAITHILI to "सामुद्रिक शास्त्र", AppLanguage.ENGLISH to "Face Reading"), mapOf(AppLanguage.HINDI to "चेहरे के दृश्य संकेतों का पारंपरिक अध्ययन", AppLanguage.MAITHILI to "चेहराक दृश्य संकेतक पारंपरिक अध्ययन", AppLanguage.ENGLISH to "Traditional study of visible facial features")),
         AstraModule("ॐ", mapOf(AppLanguage.HINDI to "उपाय एवं पूजा", AppLanguage.MAITHILI to "उपाय आ पूजा", AppLanguage.ENGLISH to "Remedies & Puja"), mapOf(AppLanguage.HINDI to "मंत्र, पूजा-विधि, दान और रत्न-संदर्भ", AppLanguage.MAITHILI to "मंत्र, पूजा-विधि, दान आ रत्न", AppLanguage.ENGLISH to "Mantras, rituals, charity and gem traditions")),
         AstraModule("✺", mapOf(AppLanguage.HINDI to "नक्षत्र दर्शन", AppLanguage.MAITHILI to "नक्षत्र दर्शन", AppLanguage.ENGLISH to "Nakshatra Guide"), mapOf(AppLanguage.HINDI to "27 नक्षत्र, प्रतीक और अधिष्ठाता देवता", AppLanguage.MAITHILI to "27 नक्षत्र, प्रतीक आ देवता", AppLanguage.ENGLISH to "27 nakshatras, symbols and presiding deities")),
+        AstraModule("✦", mapOf(AppLanguage.HINDI to "ग्रह चित्रावली", AppLanguage.MAITHILI to "ग्रह चित्रावली", AppLanguage.ENGLISH to "Celestial Gallery"), mapOf(AppLanguage.HINDI to "ग्रहों और 27 नक्षत्रों के मौलिक चित्र", AppLanguage.MAITHILI to "ग्रह आ 27 नक्षत्रक चित्र", AppLanguage.ENGLISH to "Original illustrations of planets and 27 nakshatras")),
         AstraModule("◷", mapOf(AppLanguage.HINDI to "समय विश्लेषण", AppLanguage.MAITHILI to "समय विश्लेषण", AppLanguage.ENGLISH to "Time Analysis"), mapOf(AppLanguage.HINDI to "अगले 1, 3, 6, 12 और 24 घंटे", AppLanguage.MAITHILI to "आगाँक 1, 3, 6, 12 आ 24 घंटा", AppLanguage.ENGLISH to "Next 1, 3, 6, 12 and 24 hours")),
         AstraModule("✓", mapOf(AppLanguage.HINDI to "परिणाम सत्यापन", AppLanguage.MAITHILI to "परिणाम जाँच", AppLanguage.ENGLISH to "Prediction Verification"), mapOf(AppLanguage.HINDI to "पूर्वानुमान और वास्तविक परिणाम का रिकॉर्ड", AppLanguage.MAITHILI to "अनुमान आ वास्तविक परिणामक रिकॉर्ड", AppLanguage.ENGLISH to "Track forecasts against observed outcomes"))
     )
@@ -76,7 +84,7 @@ private fun VedicAstraApp() {
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF8B3D20), secondary = Color(0xFFB77B32), background = Color(0xFFFFF8ED), surface = Color(0xFFFFFCF6))) {
         Scaffold(containerColor = Color(0xFFFFF8ED), topBar = {
             TopAppBar(title = { Column { Text("VEDIC ASTRA", fontWeight = FontWeight.ExtraBold); Text("सनातन ज्ञान • खगोलीय गणना", style = MaterialTheme.typography.labelSmall) } },
-                navigationIcon = { if (showNumerology || showNakshatra || showTarot || showRemedies || showVerification || showPanchang || showBirthChart) TextButton(onClick = { showNumerology = false; showNakshatra = false; showTarot = false; showRemedies = false; showVerification = false; showPanchang = false; showBirthChart = false }) { Text("←") } },
+                navigationIcon = { if (showNumerology || showNakshatra || showTarot || showRemedies || showVerification || showPanchang || showBirthChart || showPalmistry || showSamudrika || showCelestial) TextButton(onClick = { showNumerology = false; showNakshatra = false; showTarot = false; showRemedies = false; showVerification = false; showPanchang = false; showBirthChart = false; showPalmistry = false; showSamudrika = false; showCelestial = false }) { Text("←") } },
                 actions = {
                     var expanded by remember { mutableStateOf(false) }
                     TextButton(onClick = { expanded = true }) { Text(when(language) { AppLanguage.HINDI -> "हिन्दी"; AppLanguage.MAITHILI -> "मैथिली"; AppLanguage.ENGLISH -> "English" }) }
@@ -95,6 +103,9 @@ private fun VedicAstraApp() {
                 showVerification -> VerificationScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
                 showPanchang -> PanchangScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
                 showBirthChart -> BirthChartScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
+                showPalmistry -> PalmistryOfflineScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp), AstraLanguage.valueOf(language.name))
+                showSamudrika -> SamudrikaVisualScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp), AstraLanguage.valueOf(language.name))
+                showCelestial -> CelestialGalleryScreen(Modifier.fillMaxSize().padding(padding).padding(16.dp))
                 else -> {
                 Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 14.dp)) {
                     Box(Modifier.fillMaxWidth().height(190.dp).background(Brush.verticalGradient(listOf(Color(0xFF5B2119), Color(0xFF32120F), Color(0xFF1E1420))), RoundedCornerShape(22.dp)).padding(18.dp)) {
@@ -122,6 +133,9 @@ private fun VedicAstraApp() {
                                     "Prediction Verification" -> showVerification = true
                                     "Mithila Panchang" -> showPanchang = true
                                     "Vedic Astrology" -> showBirthChart = true
+                                    "Palmistry AI" -> showPalmistry = true
+                                    "Face Reading" -> showSamudrika = true
+                                    "Celestial Gallery" -> showCelestial = true
                                 }
                             }, shape = RoundedCornerShape(17.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFFFFDF8))) {
                                 Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
