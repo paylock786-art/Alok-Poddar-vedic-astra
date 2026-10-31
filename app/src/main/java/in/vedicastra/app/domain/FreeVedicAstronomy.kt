@@ -83,7 +83,8 @@ object FreeVedicAstronomy {
         val illumination = illumination(Body.Moon, time).phaseFraction * 100.0
         return PanchangResult(local, ayan, sun, moon, tithiName, paksha,
             nakshatras[floor(moon / (360.0/27.0)).toInt().coerceIn(0,26)],
-            yogas[yogaIndex], karana, illumination, rise?.let { Instant.ofEpochMilli(it.toMillisecondsSince1970()).atZone(ZoneId.of(zoneId)).toLocalTime().toString() },\n            set?.let { Instant.ofEpochMilli(it.toMillisecondsSince1970()).atZone(ZoneId.of(zoneId)).toLocalTime().toString() })
+            yogas[yogaIndex], karana, illumination, rise?.let { Instant.ofEpochMilli(it.toMillisecondsSince1970()).atZone(ZoneId.of(zoneId)).toLocalTime().toString() },
+            set?.let { Instant.ofEpochMilli(it.toMillisecondsSince1970()).atZone(ZoneId.of(zoneId)).toLocalTime().toString() })
     }
 
     fun birthChart(epochMillis: Long, latitude: Double, longitudeEast: Double): BirthChartResult {
