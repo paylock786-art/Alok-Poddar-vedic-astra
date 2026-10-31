@@ -330,6 +330,7 @@ private fun BirthChartScreen(modifier: Modifier = Modifier) {
     var longitude by remember { mutableStateOf("85.14") }
     var zone by remember { mutableStateOf("Asia/Kolkata") }
     var result by remember { mutableStateOf<com.vedicastra.app.domain.BirthChartResult?>(null) }
+    var birthEpochMillis by remember { mutableStateOf<Long?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     Column(modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
         Text("जन्मकुंडली • लग्न और ग्रह", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -342,6 +343,7 @@ private fun BirthChartScreen(modifier: Modifier = Modifier) {
         Button(onClick = {
             try {
                 val instant = LocalDateTime.parse("${date.trim()}T${time.trim()}").atZone(ZoneId.of(zone.trim())).toInstant()
+                birthEpochMillis = instant.toEpochMilli()
                 result = FreeVedicAstronomy.birthChart(instant.toEpochMilli(), latitude.toDouble(), longitude.toDouble())
                 error = null
             } catch (e: Exception) { error = "जन्म विवरण जाँचें: ${e.message}"; result = null }
