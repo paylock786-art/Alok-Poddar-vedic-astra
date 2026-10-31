@@ -92,7 +92,8 @@ private fun VedicAstraApp() {
                     LazyVerticalGrid(columns = GridCells.Fixed(2), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
                         items(modules) { module ->
                             val isNumerology = module.title[AppLanguage.ENGLISH] == "Numerology"
-                            ElevatedCard(Modifier.fillMaxWidth().clickable(enabled = isNumerology) { showNumerology = true }, shape = RoundedCornerShape(17.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFFFFDF8))) {
+                            val isNakshatra = module.title[AppLanguage.ENGLISH] == "Nakshatra Guide"
+                            ElevatedCard(Modifier.fillMaxWidth().clickable(enabled = isNumerology || isNakshatra) { if (isNumerology) showNumerology = true else showNakshatra = true }, shape = RoundedCornerShape(17.dp), colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFFFFDF8))) {
                                 Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text(module.icon, style = MaterialTheme.typography.headlineMedium, color = Color(0xFF9B4A25))
                                     Text(module.title[language] ?: module.title[AppLanguage.ENGLISH]!!, fontWeight = FontWeight.Bold)
