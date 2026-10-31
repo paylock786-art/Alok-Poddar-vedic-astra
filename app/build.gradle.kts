@@ -4,10 +4,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 android {
-    namespace = "in.vedicastra.app"
+    namespace = "com.vedicastra.app"
     compileSdk = 35
     defaultConfig {
-        applicationId = "in.vedicastra.app"
+        applicationId = "com.vedicastra.app"
         minSdk = 28
         targetSdk = 35
         versionCode = 1
