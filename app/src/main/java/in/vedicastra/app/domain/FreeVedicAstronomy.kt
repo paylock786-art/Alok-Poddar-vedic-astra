@@ -65,7 +65,7 @@ object FreeVedicAstronomy {
         val moon = normalize(longitude(Body.Moon, time) - ayan)
         val elongation = normalize(moon - sun)
         val tithiIndex = floor(elongation / 12.0).toInt().coerceIn(0,29)
-        val yogaIndex = floor(normalize(sun + moon + 2.0 * ayan) / (360.0 / 27.0)).toInt().coerceIn(0,26)
+        val yogaIndex = floor(normalize(sun + moon) / (360.0 / 27.0)).toInt().coerceIn(0,26)
         val karanaIndex = floor(elongation / 6.0).toInt().coerceIn(0,59)
         val karana = when (karanaIndex) {
             0 -> karanas[0]
@@ -83,7 +83,7 @@ object FreeVedicAstronomy {
         val illumination = illumination(Body.Moon, time).phaseFraction * 100.0
         return PanchangResult(local, ayan, sun, moon, tithiName, paksha,
             nakshatras[floor(moon / (360.0/27.0)).toInt().coerceIn(0,26)],
-            yogas[yogaIndex], karana, illumination, rise?.toString(), set?.toString())
+            yogas[yogaIndex], karana, illumination, rise?.let { Instant.ofEpochMilli(it.toMillisecondsSince1970()).atZone(ZoneId.of(zoneId)).toLocalTime().toString() },\n            set?.let { Instant.ofEpochMilli(it.toMillisecondsSince1970()).atZone(ZoneId.of(zoneId)).toLocalTime().toString() })
     }
 
     fun birthChart(epochMillis: Long, latitude: Double, longitudeEast: Double): BirthChartResult {
